@@ -94,3 +94,91 @@ FROM customer
 GROUP BY age_group
 ORDER BY total_revenue desc;
 
+
+-- ============================================================
+-- ADVANCED ENTERPRISE ANALYTICS QUERIES (Q11 - Q14)
+-- ============================================================
+
+--Q11. Advanced RFM Segmentation (Frequency, Monetary & NTILE Percentile Scoring)
+WITH rfm_base AS (
+    SELECT 
+        customer_id,
+        previous_purchases AS frequency,
+        purchase_amount AS monetary,
+        purchase_frequency_days AS recency_days
+    FROM customer
+),
+rfm_scores AS (
+    SELECT 
+        customer_id,
+        NTILE(5) OVER (ORDER BY recency_days ASC) AS r_score,
+        NTILE(5) OVER (ORDER BY frequency DESC) AS f_score,
+        NTILE(5) OVER (ORDER BY monetary DESC) AS m_score
+    FROM rfm_base
+)
+SELECT 
+    customer_id,
+    r_score,
+    f_score,
+    m_score,
+    (r_score + f_score + m_score) AS total_rfm_score,
+    CASE 
+        WHEN (r_score + f_score + m_score) >= 12 THEN 'Champions / VIP'
+        WHEN (r_score + f_score + m_score) BETWEEN 9 AND 11 THEN 'Loyal Customers'
+        WHEN (r_score + f_score + m_score) BETWEEN 6 AND 8 THEN 'Promising'
+        ELSE 'At Risk / Needs Attention'
+    END AS rfm_segment
+FROM rfm_scores
+ORDER BY total_rfm_score DESC
+LIMIT 20;
+
+
+--Q12. Cumulative Category Revenue Contribution & Share of Wallet
+WITH category_revenue AS (
+    SELECT 
+        category,
+        SUM(purchase_amount) AS category_revenue
+    FROM customer
+    GROUP BY category
+)
+SELECT 
+    category,
+    category_revenue,
+    SUM(category_revenue) OVER (ORDER BY category_revenue DESC) AS cumulative_revenue,
+    ROUND(100.0 * category_revenue / SUM(category_revenue) OVER (), 2) AS revenue_share_pct
+FROM category_revenue
+ORDER BY category_revenue DESC;
+
+
+--Q13. Shipping Tier Profitability & Order Value Density Analysis
+SELECT 
+    shipping_type,
+    COUNT(customer_id) AS total_orders,
+    ROUND(AVG(purchase_amount), 2) AS avg_order_value,
+    ROUND(SUM(purchase_amount), 2) AS total_revenue,
+    ROUND(100.0 * SUM(CASE WHEN discount_applied = 'Yes' THEN 1 ELSE 0 END) / COUNT(*), 2) AS discount_usage_pct
+FROM customer
+GROUP BY shipping_type
+ORDER BY total_revenue DESC;
+
+
+--Q14. High-Value Customer Lifetime Value (CLV) & Risk Tiering
+SELECT 
+    customer_id,
+    age,
+    gender,
+    subscription_status,
+    previous_purchases,
+    purchase_amount,
+    review_rating,
+    CASE 
+        WHEN previous_purchases >= 30 AND purchase_amount >= 75 THEN 'Tier 1 - High Value VIP'
+        WHEN previous_purchases >= 15 AND purchase_amount >= 50 THEN 'Tier 2 - Growth Potential'
+        WHEN previous_purchases < 15 AND purchase_amount >= 50 THEN 'Tier 3 - New High Spender'
+        ELSE 'Tier 4 - Low Engagement'
+    END AS clv_tier
+FROM customer
+ORDER BY purchase_amount DESC, previous_purchases DESC
+LIMIT 25;
+
+
