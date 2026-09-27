@@ -99,7 +99,7 @@ ORDER BY total_revenue desc;
 -- ADVANCED ENTERPRISE ANALYTICS QUERIES (Q11 - Q14)
 -- ============================================================
 
---Q11. Advanced RFM Segmentation (Frequency, Monetary & NTILE Percentile Scoring)
+--Q11. Behavioral Customer Segmentation (RFM-Inspired NTILE Scoring)
 WITH rfm_base AS (
     SELECT 
         customer_id,
@@ -162,7 +162,7 @@ GROUP BY shipping_type
 ORDER BY total_revenue DESC;
 
 
---Q14. High-Value Customer Lifetime Value (CLV) & Risk Tiering
+--Q14. High-Value Customer Tiering & Engagement Ranking
 SELECT 
     customer_id,
     age,
